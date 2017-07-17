@@ -1,0 +1,1603 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "uniqueNamePrefix": {
+            "type": "string",
+            "metadata": {
+            "description": "Unique name that will be used to generate various other names including the name of the Public IP used to access the Virtual Machine."
+            }
+        },  
+        "webAppUsername": {
+            "type": "string",
+            "defaultValue": "pcwebappuser",
+            "metadata": {
+            "description": "VM User name for App Servers"
+            }
+        },  
+        "webAppPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "password to ssh to the VMs"
+            }
+        },
+        "mySqlUsername": {
+            "type": "string",
+            "defaultValue": "pcmysqluser",
+            "metadata": {
+            "description": "VM User name for DB Servers"
+            }
+        }, 
+        "mySqlPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "password to ssh to the VMs"
+            }
+        }, 
+        "mysqlReplicationPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "mysqlReplicationPassword"
+            }
+        }, 
+        "mysqlRootPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "mysqlRootPassword"
+            }
+        }, 
+        "mysqlProbePassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "mysqlProbePassword"
+            }
+        }, 
+        "mcNodeUsername": {
+            "type": "string",
+            "defaultValue": "pcmcuser",
+            "metadata": {
+            "description": "VM User name for DB Servers"
+            }
+        }, 
+        "mcNodePassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "password to ssh to the VMs"
+            }
+        }, 
+        "artifactsPath": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/mysql-replication",
+            "metadata": {
+                "description": "template and script file location",
+                "artifactsBaseUrl": "Base URL of the Publisher Template gallery package"
+            }
+        },
+        "customScriptCommandToExecute": {
+            "type": "string",
+            "defaultValue": "bash azuremysql.sh",
+            "metadata": {
+                "description": "bash script command line"
+            }
+        },
+        "disks_primeconmcadnin_datadisk_name": {
+            "defaultValue": "primeconmcadnin_datadisk",
+            "type": "String"
+        }
+    },
+    "variables": {
+        "templateAPIVersion": "2015-01-01",
+        "resourceAPIVersion": "2015-06-15",
+        "virtualNetworks_vnet_name": "[concat(parameters('uniqueNamePrefix'),'vnet')]",
+        "publicIPAddresses_primecon_app_pip_name": "[concat(parameters('uniqueNamePrefix'),'app_pip')]",
+        "publicIPAddresses_primecon_db_pip_name": "[concat(parameters('uniqueNamePrefix'),'db_pip')]",
+        "publicIPAddresses_primeconmcadmin_ip_name": "[concat(parameters('uniqueNamePrefix'),'mcadmin_pip')]",
+        "publicIPAddresses_primeconmc1_ip_name": "[concat(parameters('uniqueNamePrefix'),'mc1_pip')]",
+        "publicIPAddresses_primeconmc2_ip_name": "[concat(parameters('uniqueNamePrefix'),'mc2_pip')]",
+        "storageAccounts_stracc1_name":"[concat(parameters('uniqueNamePrefix'),'stracc1')]",
+        "storageAccounts_stracc2_name":"[concat(parameters('uniqueNamePrefix'),'stracc2')]",
+        "storageAccounts_stracc3_name":"[concat(parameters('uniqueNamePrefix'),'stracc3')]",
+        "storageAccounts_stracc4_name":"[concat(parameters('uniqueNamePrefix'),'stracc4')]",
+        "storageAccounts_stracc5_name":"[concat(parameters('uniqueNamePrefix'),'stracc5')]",
+        "storageAccounts_stracc6_name":"[concat(parameters('uniqueNamePrefix'),'stracc6')]",
+        "storageAccounts_stracc7_name":"[concat(parameters('uniqueNamePrefix'),'stracc7')]",
+        "storageAccounts_stracc8_name":"[concat(parameters('uniqueNamePrefix'),'stracc8')]",
+        "loadBalancers_primeconapp_lb_name": "[concat(parameters('uniqueNamePrefix'),'applb')]",
+        "loadBalancers_primecondb_lb_name": "[concat(parameters('uniqueNamePrefix'),'dblb')]",
+        "networkInterfaces_primecondb_nic0_name":"[concat(parameters('uniqueNamePrefix'),'db-nic0')]",
+        "networkInterfaces_primecondb_nic1_name": "[concat(parameters('uniqueNamePrefix'),'db-nic1')]",
+        "networkInterfaces_primeconapp_nic0_name": "[concat(parameters('uniqueNamePrefix'),'app-nic0')]",
+        "networkInterfaces_primeconapp_nic1_name": "[concat(parameters('uniqueNamePrefix'),'app-nic1')]",
+        "networkInterfaces_primeconmc_nic1_name": "[concat(parameters('uniqueNamePrefix'),'mc-nic1')]",
+        "networkInterfaces_primeconmc_nic2_name": "[concat(parameters('uniqueNamePrefix'),'mc-nic2')]",
+        "networkInterfaces_primeconmcadmin_nic_name": "[concat(parameters('uniqueNamePrefix'),'mcadmin-nic')]",
+        "networkSecurityGroups_primeconapp0_nsg_name": "[concat(parameters('uniqueNamePrefix'),'app0-nsg')]",
+        "networkSecurityGroups_primeconapp1_nsg_name": "[concat(parameters('uniqueNamePrefix'),'app1-nsg')]",
+        "networkSecurityGroups_primeconmcadmin_nsg_name": "[concat(parameters('uniqueNamePrefix'),'mcadmin-nsg')]",
+        "availabilitySets_primeconappset_name": "[concat(parameters('uniqueNamePrefix'),'appset')]",
+        "availabilitySets_primecondb_set_name": "[concat(parameters('uniqueNamePrefix'),'dbset')]",
+        "availabilitySets_primeconmcset_name": "[concat(parameters('uniqueNamePrefix'),'mcset')]",
+        "virtualMachines_primeconapp0_name": "[concat(parameters('uniqueNamePrefix'),'app0')]",
+        "virtualMachines_primeconapp1_name": "[concat(parameters('uniqueNamePrefix'),'app1')]",
+        "virtualMachines_primecondb0_name": "[concat(parameters('uniqueNamePrefix'),'db0')]",
+        "virtualMachines_primecondb1_name": "[concat(parameters('uniqueNamePrefix'),'db1')]",
+        "virtualMachines_primeconmc1_name": "[concat(parameters('uniqueNamePrefix'),'mc1')]",
+        "virtualMachines_primeconmc2_name": "[concat(parameters('uniqueNamePrefix'),'mc2')]",
+        "virtualMachines_primeconmcadmin_name": "[concat(parameters('uniqueNamePrefix'),'mcadmin')]",
+        "customScriptFilePath": "[concat(parameters('artifactsPath'), '/azuremysql.sh')]",
+        "mysqlConfigFilePath": "[concat(parameters('artifactsPath'), '/my.cnf.template')]",
+        "singleQuote": "",
+        "dbSubnetStartAddress": "10.0.1.4",
+        "ipOctet01": "[concat(split(variables('dbSubnetStartAddress'), '.')[0], '.', split(variables('dbSubnetStartAddress'), '.')[1], '.')]",
+        "ipOctet2": "[int(split(variables('dbSubnetStartAddress'), '.')[2])]",
+        "ipOctet3": "[int(split(variables('dbSubnetStartAddress'), '.')[3])]",
+        "extensions_setupMySQL_name_0":"[concat(parameters('uniqueNamePrefix'),'db0/setupMySQL')]",
+        "extensions_setupMySQL_name_1":"[concat(parameters('uniqueNamePrefix'),'db1/setupMySQL')]",
+        "loadBalancer_primecondb": "[resourceId('Microsoft.Network/loadBalancers',variables('loadBalancers_primecondb_lb_name'))]",
+        "loadBalancer_primeconapp": "[resourceId('Microsoft.Network/loadBalancers',variables('loadBalancers_primeconapp_lb_name'))]"
+    },
+    "resources": [
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/availabilitySets/primeconappset'.",
+            "type": "Microsoft.Compute/availabilitySets",
+            "sku": {
+                "name": "Classic"
+            },
+            "name": "[variables('availabilitySets_primeconappset_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "platformUpdateDomainCount": 5,
+                "platformFaultDomainCount": 2,
+                "virtualMachines": [
+                    {
+                        "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_primeconapp0_name'))]"
+                    },
+                    {
+                        "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_primeconapp1_name'))]"
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/availabilitySets/primecondb-set'.",
+            "type": "Microsoft.Compute/availabilitySets",
+            "sku": {
+                "name": "Classic"
+            },
+            "name": "[variables('availabilitySets_primecondb_set_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "platformUpdateDomainCount": 5,
+                "platformFaultDomainCount": 3,
+                "virtualMachines": [
+                    {
+                        "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_primecondb0_name'))]"
+                    },
+                    {
+                        "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_primecondb1_name'))]"
+                    }
+                ]
+            },
+            "dependsOn": [ ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/availabilitySets/primeconmcset'.",
+            "type": "Microsoft.Compute/availabilitySets",
+            "sku": {
+                "name": "Aligned"
+            },
+            "name": "[variables('availabilitySets_primeconmcset_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "platformUpdateDomainCount": 5,
+                "platformFaultDomainCount": 2,
+                "virtualMachines": [
+                    {
+                        "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_primeconmc1_name'))]"
+                    },
+                    {
+                        "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_primeconmc2_name'))]"
+                    },
+                    {
+                        "id": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_primeconmcadmin_name'))]"
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/disks/primeconmcadnin_datadisk'.",
+            "type": "Microsoft.Compute/disks",
+            "name": "[parameters('disks_primeconmcadnin_datadisk_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "accountType": "Premium_LRS",
+                "creationData": {
+                    "createOption": "Empty"
+                },
+                "diskSizeGB": 1023
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/virtualMachines/primeconapp0'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_primeconapp0_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primeconappset_name'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_A1"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "16.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[variables('virtualMachines_primeconapp0_name')]",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat('https', '://', variables('storageAccounts_stracc3_name'), '.blob.core.windows.net', concat('/vhds/', variables('virtualMachines_primeconapp0_name'),'20170621152922.vhd'))]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_primeconapp0_name')]",
+                    "adminUsername": "[parameters('webAppUsername')]",
+                    "adminPassword": "[parameters('webAppPassword')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconapp_nic0_name'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('https', '://', variables('storageAccounts_stracc1_name'), '.blob.core.windows.net', '/')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_stracc3_name'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconapp_nic0_name'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_stracc1_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/virtualMachines/primeconapp1'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_primeconapp1_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primeconappset_name'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_A1"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "16.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[variables('virtualMachines_primeconapp1_name')]",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat('https', '://', variables('storageAccounts_stracc6_name'), '.blob.core.windows.net', concat('/vhds/', variables('virtualMachines_primeconapp1_name'),'20170621161335.vhd'))]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_primeconapp1_name')]",
+                    "adminUsername": "[parameters('webAppUsername')]",
+                    "adminPassword": "[parameters('webAppPassword')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconapp_nic1_name'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('https', '://', variables('storageAccounts_stracc5_name'), '.blob.core.windows.net', '/')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primeconappset_name'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_stracc6_name'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconapp_nic1_name'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_stracc5_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/virtualMachines/primecondb0'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_primecondb0_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primecondb_set_name'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_A1"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "OpenLogic",
+                        "offer": "CentOS",
+                        "sku": "6.6",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "osdisk",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat('https', '://', variables('storageAccounts_stracc8_name'), '.blob.core.windows.net', concat('/vhds/', variables('virtualMachines_primecondb0_name'),'osdisk.vhd'))]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "datadisk1",
+                            "createOption": "Empty",
+                            "vhd": {
+                                "uri": "[concat('https', '://', variables('storageAccounts_stracc8_name'), '.blob.core.windows.net', concat('/vhds/', variables('virtualMachines_primecondb0_name'),'dataDisk1.vhd'))]"
+                            },
+                            "caching": "None",
+                            "diskSizeGB": 1000
+                        },
+                        {
+                            "lun": 1,
+                            "name": "datadisk2",
+                            "createOption": "Empty",
+                            "vhd": {
+                                "uri": "[concat('https', '://', variables('storageAccounts_stracc8_name'), '.blob.core.windows.net', concat('/vhds/', variables('virtualMachines_primecondb0_name'),'dataDisk2.vhd'))]"
+                            },
+                            "caching": "None",
+                            "diskSizeGB": 1000
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_primecondb0_name')]",
+                    "adminUsername": "[parameters('mySqlUsername')]",
+                    "adminPassword": "[parameters('mySqlPassword')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primecondb_nic0_name'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primecondb_set_name'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_stracc8_name'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primecondb_nic0_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/virtualMachines/primecondb1'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_primecondb1_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primecondb_set_name'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_A1"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "OpenLogic",
+                        "offer": "CentOS",
+                        "sku": "6.6",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "osdisk",
+                        "createOption": "FromImage",
+                        "vhd": {
+                            "uri": "[concat('https', '://', variables('storageAccounts_stracc8_name'), '.blob.core.windows.net', concat('/vhds/', variables('virtualMachines_primecondb1_name'),'osdisk.vhd'))]"
+                        },
+                        "caching": "ReadWrite"
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "datadisk1",
+                            "createOption": "Empty",
+                            "vhd": {
+                                "uri": "[concat('https', '://', variables('storageAccounts_stracc8_name'), '.blob.core.windows.net', concat('/vhds/', variables('virtualMachines_primecondb1_name'),'dataDisk1.vhd'))]"
+                            },
+                            "caching": "None",
+                            "diskSizeGB": 1000
+                        },
+                        {
+                            "lun": 1,
+                            "name": "datadisk2",
+                            "createOption": "Empty",
+                            "vhd": {
+                                "uri": "[concat('https', '://', variables('storageAccounts_stracc8_name'), '.blob.core.windows.net', concat('/vhds/', variables('virtualMachines_primecondb1_name'),'dataDisk2.vhd'))]"
+                            },
+                            "caching": "None",
+                            "diskSizeGB": 1000
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_primecondb1_name')]",
+                    "adminUsername": "[parameters('mySqlUsername')]",
+                    "adminPassword": "[parameters('mySqlPassword')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primecondb_nic1_name'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primecondb_set_name'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_stracc8_name'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primecondb_nic1_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/virtualMachines/primeconmc1'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_primeconmc1_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primeconmcset_name'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_F2s"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "16.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(variables('virtualMachines_primeconmc1_name'),'_OsDisk_1')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        },
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_primeconmc1_name')]",
+                    "adminUsername": "[parameters('mcNodeUsername')]",
+                    "adminPassword": "[parameters('mcNodePassword')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconmc_nic1_name'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('https', '://', variables('storageAccounts_stracc4_name'), '.blob.core.windows.net', '/')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primeconmcset_name'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconmc_nic1_name'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_stracc4_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/virtualMachines/primeconmc2'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_primeconmc2_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primeconmcset_name'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_F2s"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "16.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(variables('virtualMachines_primeconmc2_name'),'_OsDisk_1')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        },
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_primeconmc2_name')]",
+                    "adminUsername": "[parameters('mcNodeUsername')]",
+                    "adminPassword": "[parameters('mcNodePassword')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconmc_nic2_name'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('https', '://', variables('storageAccounts_stracc2_name'), '.blob.core.windows.net', '/')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primeconmcset_name'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconmc_nic2_name'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_stracc2_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/virtualMachines/primeconmcadmin'.",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('virtualMachines_primeconmcadmin_name')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primeconmcset_name'))]"
+                },
+                "hardwareProfile": {
+                    "vmSize": "Standard_F2s"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "16.04-LTS",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "Linux",
+                        "name": "[concat(variables('virtualMachines_primeconmcadmin_name'),'_OsDisk_1')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        },
+                        "diskSizeGB": 30
+                    },
+                    "dataDisks": [
+                        {
+                            "lun": 0,
+                            "name": "primeconmcadnin_datadisk",
+                            "createOption": "Attach",
+                            "caching": "ReadWrite",
+                            "managedDisk": {
+                                "storageAccountType": "Premium_LRS",
+                                "id": "[resourceId('Microsoft.Compute/disks', parameters('disks_primeconmcadnin_datadisk_name'))]"
+                            },
+                            "diskSizeGB": 1023
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[variables('virtualMachines_primeconmcadmin_name')]",
+                    "adminUsername": "[parameters('mcNodeUsername')]",
+                    "adminPassword": "[parameters('mcNodePassword')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false
+                    },
+                    "secrets": []
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconmcadmin_nic_name'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat('https', '://', variables('storageAccounts_stracc7_name'), '.blob.core.windows.net', '/')]"
+                    }
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/availabilitySets', variables('availabilitySets_primeconmcset_name'))]",
+                "[resourceId('Microsoft.Compute/disks', parameters('disks_primeconmcadnin_datadisk_name'))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaces_primeconmcadmin_nic_name'))]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccounts_stracc7_name'))]"
+            ]
+        },
+        
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/loadBalancers/primeconapplb'.",
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('loadBalancers_primeconapp_lb_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "LoadBalancerFrontEnd",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primecon_app_pip_name'))]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "primecomapppool"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "primeconlbrule",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancer_primeconapp'),'/frontendIPConfigurations/LoadBalancerFrontEnd')]"
+                            },
+                            "frontendPort": 80,
+                            "backendPort": 80,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 4,
+                            "protocol": "Tcp",
+                            "loadDistribution": "SourceIP",
+                            "backendAddressPool": {
+                                "id": "[concat(variables('loadBalancer_primeconapp'),'/backendAddressPools/primecomapppool')]"
+                            },
+                            "probe": {
+                                "id": "[concat(variables('loadBalancer_primeconapp'),'/probes/primeconhpb')]"
+                            }
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "name": "primeconhpb",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": 80,
+                            "intervalInSeconds": 15,
+                            "numberOfProbes": 2
+                        }
+                    }
+                ],
+                "inboundNatRules": [
+                    {
+                        "name": "primeconappNatRule0",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancer_primeconapp'),'/frontendIPConfigurations/LoadBalancerFrontEnd')]"
+                            },
+                            "frontendPort": 64001,
+                            "backendPort": 22,
+                            "protocol": "Tcp"
+                        }
+                    },
+                    {
+                        "name": "primeconappNatRule1",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancer_primeconapp'),'/frontendIPConfigurations/LoadBalancerFrontEnd')]"
+                            },
+                            "frontendPort": 64002,
+                            "backendPort": 22,
+                            "protocol": "Tcp"
+                        }
+                    }
+                ],
+                "outboundNatRules": [],
+                "inboundNatPools": []
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primecon_app_pip_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/loadBalancers/primecondb-lb'.",
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('loadBalancers_primecondb_lb_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "primecondb-sshIPCfg",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primecon_db_pip_name'))]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "primecondb-ilbBackendPool"
+                    }
+                ],
+                "loadBalancingRules": [],
+                "probes": [],
+                "inboundNatRules": [
+                    {
+                        "name": "primecondbNatRule0",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancer_primecondb'),'/frontendIPConfigurations/primecondb-sshIPCfg')]"
+                            },
+                            "frontendPort": 64001,
+                            "backendPort": 22,
+                            "protocol": "Tcp"
+                        }
+                    },
+                    {
+                        "name": "primecondbNatRule1",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancer_primecondb'),'/frontendIPConfigurations/primecondb-sshIPCfg')]"
+                            },
+                            "frontendPort": 64002,
+                            "backendPort": 22,
+                            "protocol": "Tcp"
+                        }
+                    },
+                    {
+                        "name": "primecondbMySQLNatRule0",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancer_primecondb'),'/frontendIPConfigurations/primecondb-sshIPCfg')]"
+                            },
+                            "frontendPort": 3306,
+                            "backendPort": 3306,
+                            "protocol": "Tcp"
+                        }
+                    },
+                    {
+                        "name": "primecondbMySQLNatRule1",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancer_primecondb'),'/frontendIPConfigurations/primecondb-sshIPCfg')]"
+                            },
+                            "frontendPort": 3307,
+                            "backendPort": 3306,
+                            "protocol": "Tcp"
+                        }
+                    },
+                    {
+                        "name": "primecondbProbeNatRule0",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancer_primecondb'),'/frontendIPConfigurations/primecondb-sshIPCfg')]"
+                            },
+                            "frontendPort": 9200,
+                            "backendPort": 9200,
+                            "protocol": "Tcp"
+                        }
+                    },
+                    {
+                        "name": "primecondbProbeNatRule1",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[concat(variables('loadBalancer_primecondb'),'/frontendIPConfigurations/primecondb-sshIPCfg')]"
+                            },
+                            "frontendPort": 9201,
+                            "backendPort": 9200,
+                            "protocol": "Tcp"
+                        }
+                    }
+                ],
+                "outboundNatRules": [],
+                "inboundNatPools": []
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primecon_db_pip_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkInterfaces/primeconapp0973'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_primeconapp_nic0_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.4",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name')), '/subnets/appsubnet')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primeconapp_lb_name')), '/backendAddressPools/primecomapppool')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primeconapp_lb_name')), '/inboundNatRules/primeconappNatRule0')]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconapp0_nsg_name'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primeconapp_lb_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconapp0_nsg_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkInterfaces/primeconapp1767'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_primeconapp_nic1_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.0.5",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name')), '/subnets/appsubnet')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primeconapp_lb_name')), '/backendAddressPools/primecomapppool')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primeconapp_lb_name')), '/inboundNatRules/primeconappNatRule1')]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconapp0_nsg_name'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primeconapp_lb_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconapp0_nsg_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkInterfaces/primecondb-nic0'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_primecondb_nic0_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig0",
+                        "properties": {
+                            "privateIPAddress": "10.0.1.4",
+                            "privateIPAllocationMethod": "Static",
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name')), '/subnets/dbsubnet')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name')), '/backendAddressPools/primecondb-ilbBackendPool')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name')), '/inboundNatRules/primecondbNatRule0')]"
+                                },
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name')), '/inboundNatRules/primecondbProbeNatRule0')]"
+                                },
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name')), '/inboundNatRules/primecondbMySQLNatRule0')]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkInterfaces/primecondb-nic1'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_primecondb_nic1_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.1.5",
+                            "privateIPAllocationMethod": "Static",
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name')), '/subnets/dbsubnet')]"
+                            },
+                            "loadBalancerBackendAddressPools": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name')), '/backendAddressPools/primecondb-ilbBackendPool')]"
+                                }
+                            ],
+                            "loadBalancerInboundNatRules": [
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name')), '/inboundNatRules/primecondbNatRule1')]"
+                                },
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name')), '/inboundNatRules/primecondbProbeNatRule1')]"
+                                },
+                                {
+                                    "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name')), '/inboundNatRules/primecondbMySQLNatRule1')]"
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name'))]",
+                "[resourceId('Microsoft.Network/loadBalancers', variables('loadBalancers_primecondb_lb_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkInterfaces/primeconmc1572'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_primeconmc_nic1_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.2.5",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primeconmc1_ip_name'))]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name')), '/subnets/mcsubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconmcadmin_nsg_name'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primeconmc1_ip_name'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconmcadmin_nsg_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkInterfaces/primeconmc215'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_primeconmc_nic2_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.2.6",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primeconmc2_ip_name'))]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name')), '/subnets/mcsubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconmcadmin_nsg_name'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primeconmc2_ip_name'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconmcadmin_nsg_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkInterfaces/primeconmcadmin348'.",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('networkInterfaces_primeconmcadmin_nic_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAddress": "10.0.2.4",
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primeconmcadmin_ip_name'))]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name')), '/subnets/mcsubnet')]"
+                            }
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": []
+                },
+                "enableIPForwarding": false,
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconmcadmin_nsg_name'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddresses_primeconmcadmin_ip_name'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworks_vnet_name'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroups_primeconmcadmin_nsg_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkSecurityGroups/primeconapp0-nsg'.",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('networkSecurityGroups_primeconapp0_nsg_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-ssh",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1000,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "HTTP",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1010,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkSecurityGroups/primeconapp1-nsg'.",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('networkSecurityGroups_primeconapp1_nsg_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-ssh",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1000,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/networkSecurityGroups/primeconmcadmin-nsg'.",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('networkSecurityGroups_primeconmcadmin_nsg_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-ssh",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1000,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "mcRpcPort",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "15590",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1010,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "mcExplorer",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "2750",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1020,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "mcNetworkPort",
+                        "properties": {
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "61172",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 1030,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/publicIPAddresses/primeconmc1-ip'.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddresses_primeconmc1_ip_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/publicIPAddresses/primeconmc2-ip'.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddresses_primeconmc2_ip_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/publicIPAddresses/primeconmcadmin-ip'.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddresses_primeconmcadmin_ip_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/publicIPAddresses/primeconpip'.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddresses_primecon_app_pip_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(parameters('uniqueNamePrefix'),'app')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/publicIPAddresses/primecontractdbpip'.",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIPAddresses_primecon_db_pip_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "idleTimeoutInMinutes": 4,
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(parameters('uniqueNamePrefix'),'db')]"
+                }
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Network/virtualNetworks/primecontractvnet'.",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('virtualNetworks_vnet_name')]",
+            "apiVersion": "2017-03-01",
+            "location": "centralindia",
+            "scale": null,
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/16"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "dbsubnet",
+                        "properties": {
+                            "addressPrefix": "10.0.1.0/24"
+                        }
+                    },
+                    {
+                        "name": "appsubnet",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/24"
+                        }
+                    },
+                    {
+                        "name": "mcsubnet",
+                        "properties": {
+                            "addressPrefix": "10.0.2.0/24"
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": []
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Storage/storageAccounts/primechaincontractprd178'.",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('storageAccounts_stracc1_name')]",
+            "apiVersion": "2016-01-01",
+            "location": "centralindia",
+            "tags": {},
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Storage/storageAccounts/primechaincontractprd275'.",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('storageAccounts_stracc2_name')]",
+            "apiVersion": "2016-01-01",
+            "location": "centralindia",
+            "tags": {},
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Storage/storageAccounts/primechaincontractprd289'.",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('storageAccounts_stracc3_name')]",
+            "apiVersion": "2016-01-01",
+            "location": "centralindia",
+            "tags": {},
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Storage/storageAccounts/primechaincontractprd295'.",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('storageAccounts_stracc4_name')]",
+            "apiVersion": "2016-01-01",
+            "location": "centralindia",
+            "tags": {},
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Storage/storageAccounts/primechaincontractprd357'.",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('storageAccounts_stracc5_name')]",
+            "apiVersion": "2016-01-01",
+            "location": "centralindia",
+            "tags": {},
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Storage/storageAccounts/primechaincontractprd440'.",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('storageAccounts_stracc6_name')]",
+            "apiVersion": "2016-01-01",
+            "location": "centralindia",
+            "tags": {},
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Storage/storageAccounts/primechaincontractprd893'.",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('storageAccounts_stracc7_name')]",
+            "apiVersion": "2016-01-01",
+            "location": "centralindia",
+            "tags": {},
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Storage/storageAccounts/qfgcyuomaroagstorage'.",
+            "type": "Microsoft.Storage/storageAccounts",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "Storage",
+            "name": "[variables('storageAccounts_stracc8_name')]",
+            "apiVersion": "2016-01-01",
+            "location": "centralindia",
+            "tags": {},
+            "scale": null,
+            "properties": {},
+            "dependsOn": []
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/virtualMachines/primecondb0/extensions/setupMySQL'.",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[variables('extensions_setupMySQL_name_0')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/mysql-replication/azuremysql.sh"
+                    ]
+                },
+                "protectedSettings": {
+                    "commandToExecute": "[concat(parameters('customScriptCommandToExecute'), ' ', '1', ' ','10','.','0','.','1','.','4', ' ', variables('mysqlConfigFilePath'), ' ', variables('singleQuote'), parameters('mysqlReplicationPassword'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('mysqlRootPassword'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('mysqlProbePassword'), variables('singleQuote'), ' ', variables('dbSubnetStartAddress'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_primecondb0_name'))]"
+            ]
+        },
+        {
+            "comments": "Generalized from resource: '/subscriptions/4a004a1b-13a1-44ce-82bf-647e561cf4f1/resourceGroups/primechain-contract-prd/providers/Microsoft.Compute/virtualMachines/primecondb1/extensions/setupMySQL'.",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[variables('extensions_setupMySQL_name_1')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "CentralIndia",
+            "scale": null,
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/mysql-replication/azuremysql.sh"
+                    ]
+                },
+                "protectedSettings": {
+                    "commandToExecute": "[concat(parameters('customScriptCommandToExecute'), ' ', '2', ' ','10','.','0','.','1','.','5', ' ', variables('mysqlConfigFilePath'), ' ', variables('singleQuote'), parameters('mysqlReplicationPassword'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('mysqlRootPassword'), variables('singleQuote'), ' ', variables('singleQuote'), parameters('mysqlProbePassword'), variables('singleQuote'), ' ', variables('dbSubnetStartAddress'))]"
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachines_primecondb1_name'))]"
+            ]
+        }
+    ]
+}
