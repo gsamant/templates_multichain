@@ -257,7 +257,7 @@
         "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
-            "https://raw.githubusercontent.com/gsamant/templates_multichain/tree/master/lamp-app%20for%20php7/install_lamp.sh"
+            "https://raw.githubusercontent.com/gsamant/templates_multichain/master/lamp-app%20for%20php7/install_lamp.sh"
           ]
         },
         "protectedSettings": {
