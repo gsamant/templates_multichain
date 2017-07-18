@@ -66,7 +66,7 @@
     },
     "artifactsPath": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/gsamant/azure-quickstart-templates/lamp-php7/lamp-app%20for%20php7",
+            "defaultValue": "https://raw.githubusercontent.com/gsamant/templates_multichain/tree/master/lamp-app%20for%20php7",
             "metadata": {
                 "description": "template and script file location",
                 "artifactsBaseUrl": "Base URL of the Publisher Template gallery package"
@@ -257,7 +257,7 @@
         "autoUpgradeMinorVersion": true,
         "settings": {
           "fileUris": [
-            "https://raw.githubusercontent.com/gsamant/azure-quickstart-templates/lamp-php7/lamp-app%20for%20php7/install_lamp.sh"
+            "https://raw.githubusercontent.com/gsamant/templates_multichain/tree/master/lamp-app%20for%20php7/install_lamp.sh"
           ]
         },
         "protectedSettings": {
