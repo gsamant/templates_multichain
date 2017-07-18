@@ -227,7 +227,7 @@
                 "diskSizeGB": "1000",
                 "lun": 0,
                 "vhd": {
-                  "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountNamePrefix')), variables('resourceAPIVersion')).primaryEndpoints.blob, 'vhds/', parameters('dnsName'), copyIndex(), 'dataDisk1.vhd')]"
+                  "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountNamePrefix')), variables('resourceAPIVersion')).primaryEndpoints.blob, 'vhds/', parameters('dnsName'), copyIndex(), 'dataDisk1.vhd')]"
                 },
                 "createOption": "Empty"
               }
