@@ -5,4 +5,7 @@
     <img src="http://armviz.io/visualizebutton.png"/>
 </a>
 
-This template uses the Azure Linux CustomScript extension to deploy a LAMP application on Ubuntu. It creates an Ubuntu VM, does a silent install of MySQL, Apache and PHP, then creates a simple PHP script.  Go to /phpinfo.php to see the deployed page.
+This template uses the Azure Linux CustomScript extension to deploy a LAMP application on Ubuntu. It creates an Ubuntu VM, does a silent install of MySQL, Apache and PHP7.
+
+
+![Screenshot of Azure Deployment]({{ site.baseurl }}/Screenshot.png)
