@@ -7,5 +7,6 @@
 
 This template uses the Azure Linux CustomScript extension to deploy a LAMP application on Ubuntu. It creates an Ubuntu VM, does a silent install of MySQL, Apache and PHP7.
 
+ 
 
-![Screenshot of Azure Deployment]({{ site.baseurl }}/lamp-app%20for%20php7/Screenshot.png)
+![Screenshot of Azure Deployment]({{ site.baseurl }}/templates_multichain/lamp-app for php7/Screenshot.png)
