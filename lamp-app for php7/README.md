@@ -9,4 +9,4 @@ This template uses the Azure Linux CustomScript extension to deploy a LAMP appli
 
  
 
-![Screenshot of Azure Deployment]({{ site.baseurl }}/templates_multichain/lamp-app for php7/Screenshot.png)
+![Screenshot of Azure Deployment](Screenshot.png)
